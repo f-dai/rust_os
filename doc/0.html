@@ -1,0 +1,50 @@
+<h1>Build a minimum kernel</h1>
+
+<h2>Compile against "the Void"</h2>
+
+<p>Since our goal is to build an operation system from scratch which is independent of our hosting system, we have to disable the link to standard library. Then we will not have any access to functions like <code>println</code>, and we also have to deal with the following errors:
+* error: <code>#[panic_handler]</code> function required, but not found
+* error: language item required, but not found: <code>eh_personality</code></p>
+
+<p>A json file is introduced to define our own target specification, to make the our program run on bare metal and not rely on any underlying OS.</p>
+
+<h2>Rust Nightly</h2>
+
+<p>We use <code>rustup</code> to manage multiple rust compilers, including nightly and stable ones. <code>rustup override add nightly</code> is used in the project directory.</p>
+
+<h1>Run the minimum kernel</h1>
+
+<p>QEMU virtual machine is used for the disk image to run. But first we should create a bootable disk image.</p>
+
+<h2>Creating bootimage</h2>
+
+<p>This project will use version 0.9.23 of bootloader crate instead of creating one. The bootimage tool is also used to link the kernel and bootloader to create a bootable disk image:</p>
+
+<p><code>bash
+cargo install bootimage # Run this in home directory (without the influence of build-std in .cargo/config.toml)
+</code></p>
+
+<p><code>bash
+rustup component add llvm-tools-preview
+cargo bootimage --target x86_64-rust_os.json
+</code>
+This will compile the bootloader crate and may take a while, if it is executed for the first time. Note that the <code>--target</code> parameter is required here, even if you have target set in <code>.cargo/config.toml</code>. If you messed something up, just run <code>cargo clean</code> and recompile.</p>
+
+<h2>Run the bootimage in QEMU</h2>
+
+<p>Verify that <code>target/x86_64-rust_os/debug/bootimage-rust_os.bin</code> exists, then
+<code>bash
+qemu-system-x86_64 -drive format=raw,file=target/x86_64-rust_os/debug/bootimage-rust_os.bin
+</code>
+If everything goes is correct, you should see the following window:
+<img src="images/helloworld.jpg" alt="Hello world window" title="" /></p>
+
+<h1>Rename the Project</h1>
+
+<p>At some point we may find that the project name is undesirable. However, renaming a Rust project is not trivial. Some important things to do:
+* Edit Cargo.toml
+* Rename the folder
+* <code>cd</code> back to the new
+* <code>rustup override add nightly</code>
+* <code>rustup component add rust-src</code>
+And after more components are added, the process might be even more complex.</p>
