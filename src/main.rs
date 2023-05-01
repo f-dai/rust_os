@@ -20,7 +20,10 @@ fn panic(_info: &PanicInfo) -> ! {
 #[no_mangle] // So the name "_start()" of the function is not mangled
 pub extern "C" fn _start() -> ! {
     // Test the print function
-    vga_buffer::print_something();
+    //vga_buffer::print_something();
+    use core::fmt::Write;
+    vga_buffer::WRITER.lock().write_str("Hello world again!").unwrap();
+    write!(vga_buffer::WRITER.lock(), ", some numbers: {} {}", 123, 5.7).unwrap();
 
     loop {}
 }

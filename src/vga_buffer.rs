@@ -2,6 +2,10 @@
 // Make the type printable, comparable and enable copy semantics
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)] // each enum variant is stored as a u8 (8 bits)
+
+use lazy_static::lazy_static;
+use spin::Mutex;
+
 pub enum Color {
     Black = 0,
     Blue = 1,
@@ -97,7 +101,28 @@ impl Writer {
         }
     }
 
-    fn new_line(&mut self) {/* TODO */}
+    fn new_line(&mut self) {
+        // Move everything one line up
+        for row in 1..BUFFER_HEIGHT {
+            for col in 0..BUFFER_WIDTH {
+                let character = self.buffer.chars[row][col].read();
+                self.buffer.chars[row - 1][col].write(character);
+            }
+        }
+        self.clear_row(BUFFER_HEIGHT - 1);
+        self.column_position = 0;
+    }
+
+    fn clear_row(&mut self, row: usize) {
+        // Overwrite a row with whitespaces
+        let blank = ScreenChar {
+            ascii_character: b' ',
+            color_code: self.color_code,
+        };
+        for col in 0..BUFFER_WIDTH {
+            self.buffer.chars[row][col].write(blank);
+        }
+    }
 }
 
 // To test writing characters to screen
@@ -114,3 +139,13 @@ pub fn print_something() {
     // ö is unprintable now
     writer.write_string("Wörld!");
 }
+
+// Global interface
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {
+        column_position: 0,
+        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+    });
+}
+
