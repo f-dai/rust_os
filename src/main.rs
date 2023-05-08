@@ -11,21 +11,34 @@
 use core::panic::PanicInfo;
 
 mod vga_buffer; // for printing
+mod serial; // to send data from kernel to host system
 
 static HELLO: &[u8] = b"Hello World!";
 
-/// This function is called on panic
+// This function is called on panic
+// conditional compilation - use different handler when testing
+#[cfg(not(test))]
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
+    loop {}
+}
+
+// Panic handler in test mode
+#[cfg(test)]
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    serial_println!("[failed]\n");
+    serial_println!("Error: {}\n", info);
+    exit_qemu(QemuExitCode::Failed);
     loop {}
 }
 
 // The first test case to test if 1 equals to 1
 #[test_case]
 fn trivial_assertion() {
-    print!("trivial assertion... ");
+    serial_print!("trivial assertion... ");
     assert_eq!(1, 1);
-    println!("[ok]");
+    serial_println!("[ok]");
 }
 
 // Define some exit codes
@@ -49,7 +62,9 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
 // Test framework
 #[cfg(test)]
 fn test_runner(tests: &[&dyn Fn()]) {
-    println!("Running {} tests", tests.len());
+    //println!("Running {} tests", tests.len());
+    // Try the serial module
+    serial_println!("Running {} tests", tests.len());
     for test in tests {
         test();
     }
